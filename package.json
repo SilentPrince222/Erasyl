@@ -1,0 +1,16 @@
+{
+    "name": "tiktok-bot",
+    "version": "1.0.0",
+    "description": "Telegram bot for downloading TikTok videos on Cloudflare Workers",
+    "main": "src/index.js",
+    "scripts": {
+        "dev": "wrangler dev",
+        "deploy": "wrangler deploy"
+    },
+    "dependencies": {
+        "grammy": "^1.30.0"
+    },
+    "devDependencies": {
+        "wrangler": "^3.0.0"
+    }
+}

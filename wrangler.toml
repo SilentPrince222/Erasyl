@@ -1,0 +1,11 @@
+name = "tiktok-bot"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+# Переменные окружения (секреты настраиваются через dashboard)
+[vars]
+BOT_TOKEN = ""
+
+# Настройки для продакшена
+[env.production]
+name = "tiktok-bot-prod"
