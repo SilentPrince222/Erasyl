@@ -1,12 +1,17 @@
+"""
+Конфигурация бота
+"""
 import os
 from dotenv import load_dotenv
 
-# Загружаем переменные окружения из файла .env
+# Загрузка переменных окружения
 load_dotenv()
 
 # Токен Telegram бота
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-# Проверяем, что токен установлен
-if not BOT_TOKEN:
-    raise ValueError("BOT_TOKEN не найден в файле .env")
+# Папка для скачивания видео
+DOWNLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "downloads")
+
+# Создаем папку для скачивания, если не существует
+os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)

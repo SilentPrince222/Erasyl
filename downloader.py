@@ -1,72 +1,77 @@
-import yt_dlp
+"""
+Модуль для скачивания видео из TikTok
+"""
+import asyncio
+import logging
 import os
 import uuid
-import re
+import yt_dlp
+from config import DOWNLOAD_FOLDER
 
-# Папка для скачивания видео
-DOWNLOADS_DIR = "downloads"
-
-# Убедимся, что папка существует
-os.makedirs(DOWNLOADS_DIR, exist_ok=True)
+logger = logging.getLogger(__name__)
 
 
-def is_tiktok_url(url: str) -> bool:
-    """Проверяет, является ли URL ссылкой на TikTok"""
-    tiktok_patterns = [
-        r'https?://(?:www\.)?tiktok\.com/@[\w.-]+/video/\d+',
-        r'https?://(?:vm|vt)\.tiktok\.com/[\w]+',
-        r'https?://(?:www\.)?tiktok\.com/t/[\w]+',
-    ]
-    return any(re.match(pattern, url) for pattern in tiktok_patterns)
-
-
-def download_tiktok_video(url: str) -> str | None:
-    """
-    Скачивает видео из TikTok по URL
+class TikTokDownloader:
+    """Класс для скачивания видео из TikTok"""
     
-    Args:
-        url: Ссылка на видео TikTok
-        
-    Returns:
-        Путь к скачанному файлу или None при ошибке
-    """
-    # Генерируем уникальное имя файла
-    filename = f"{uuid.uuid4()}.mp4"
-    filepath = os.path.join(DOWNLOADS_DIR, filename)
+    def __init__(self):
+        self.download_folder = DOWNLOAD_FOLDER
+        os.makedirs(self.download_folder, exist_ok=True)
     
-    # Настройки для yt-dlp
-    ydl_opts = {
-        'outtmpl': filepath,
-        'format': 'best[ext=mp4]/best',
-        'quiet': True,
-        'no_warnings': True,
-        'extractaudio': False,
-        'noplaylist': True,
-        # Удаляем водяной знак TikTok (если возможно)
-        'postprocessors': [],
-    }
+    async def download_video(self, url: str) -> str | None:
+        """
+        Скачивание видео из TikTok
+        
+        Args:
+            url: URL видео из TikTok
+            
+        Returns:
+            Путь к скачанному видео или None при ошибке
+        """
+        try:
+            # Генерируем уникальное имя файла
+            filename = f"{uuid.uuid4().hex}.mp4"
+            filepath = os.path.join(self.download_folder, filename)
+            
+            # Настройки yt-dlp
+            ydl_opts = {
+                'outtmpl': filepath,
+                'format': 'best[ext=mp4]/best',
+                'quiet': True,
+                'no_warnings': True,
+                'extractaudio': False,
+                'noplaylist': True,
+                'rm_cachedir': True,
+                # Удаляем водяной знак
+                'postprocessors': [],
+            }
+            
+            # Запускаем скачивание в отдельном потоке
+            loop = asyncio.get_event_loop()
+            
+            def download():
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    ydl.download([url])
+            
+            await loop.run_in_executor(None, download)
+            
+            # Проверяем, что файл скачался
+            if os.path.exists(filepath):
+                logger.info(f"Видео успешно скачано: {filepath}")
+                return filepath
+            else:
+                logger.error(f"Файл не найден: {filepath}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Ошибка при скачивании видео: {e}")
+            return None
     
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
-        
-        # Проверяем, что файл существует
-        if os.path.exists(filepath):
-            return filepath
-        return None
-        
-    except Exception as e:
-        print(f"Ошибка при скачивании: {e}")
-        # Удаляем частично скачанный файл, если есть
-        if os.path.exists(filepath):
-            os.remove(filepath)
-        return None
-
-
-def cleanup_file(filepath: str) -> None:
-    """Удаляет файл после отправки"""
-    try:
-        if os.path.exists(filepath):
-            os.remove(filepath)
-    except Exception as e:
-        print(f"Ошибка при удалении файла: {e}")
+    def cleanup(self, filepath: str):
+        """Удаление временного файла"""
+        try:
+            if os.path.exists(filepath):
+                os.remove(filepath)
+                logger.info(f"Файл удален: {filepath}")
+        except Exception as e:
+            logger.error(f"Ошибка при удалении файла: {e}")
